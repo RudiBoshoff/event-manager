@@ -1,12 +1,12 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
+require 'erb'
 
 civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
 civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
-puts 'EventManager Initialized!'
-
 FILE = 'event_attendees.csv'.freeze
+LETTER = "form_letter.erb"
 
 def file_exist?
   if File.exist? FILE
@@ -16,40 +16,45 @@ def file_exist?
   end
 end
 
+# Replaces zipcode if blank
+# adds zeros if shorter than 5 digits
+# only accepts a maximum of 5 digits for zipcode
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
 end
 
+# Uses zipcode to determine legislators from google civic api
 def legislators_by_zipcode(zip)
   civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
   civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
   begin
-    legislators = civic_info.representative_info_by_address(
+    civic_info.representative_info_by_address(
       address: zip,
       levels: 'country',
-      roles: %w[legislatorUpperBody legislatorLowerBody]
-    )
-    legislators = legislators.officials
-    legislator_names = legislators.map(&:name)
-    legislators_string = legislator_names.join(', ')
-  rescue StandardError
-    'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
+      roles: ['legislatorUpperBody', 'legislatorLowerBody']
+    ).officials
+  rescue
+    "You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials"
   end
 end
 
 def display_csv_file(file_to_display, _civic_info)
   contents = CSV.open file_to_display, headers: true, header_converters: :symbol
 
+  template_letter = File.read LETTER
+  erb_template = ERB.new template_letter
+
   contents.each do |column|
     name = column[:first_name]
 
     zipcode = clean_zipcode(column[:zipcode])
 
-    legislator = legislators_by_zipcode(zipcode)
+    legislators = legislators_by_zipcode(zipcode)
 
-    puts "#{name} #{zipcode} #{legislator}"
-    puts ''
+    form_letter = erb_template.result(binding)
+
+    puts form_letter
   end
 end
 
