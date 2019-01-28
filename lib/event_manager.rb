@@ -46,6 +46,7 @@ def display_csv_file(file_to_display, _civic_info)
   erb_template = ERB.new template_letter
 
   contents.each do |column|
+    id = column[0]
     name = column[:first_name]
 
     zipcode = clean_zipcode(column[:zipcode])
@@ -54,7 +55,11 @@ def display_csv_file(file_to_display, _civic_info)
 
     form_letter = erb_template.result(binding)
 
-    puts form_letter
+    Dir.mkdir("output") unless Dir.exists? "output"
+    filename = "output/thanks_#{id}.html"
+    File.open(filename,"w") do |file|
+      file.puts form_letter
+    end
   end
 end
 
