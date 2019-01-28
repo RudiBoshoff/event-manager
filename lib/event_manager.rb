@@ -8,10 +8,6 @@ civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 EVENT_ATTENDEES = 'event_attendees.csv'.freeze
 TEMPLATE_LETTER = 'form_letter.erb'.freeze
 
-def file_exist?(file)
-  File.exist? file
-end
-
 # Replaces zipcode if blank
 # adds zeros if shorter than 5 digits
 # only accepts a maximum of 5 digits for zipcode
@@ -47,7 +43,7 @@ end
 def display_csv_file(file_to_display, _civic_info)
   contents = CSV.open file_to_display, headers: true, header_converters: :symbol
 
-  if file_exist?(TEMPLATE_LETTER)
+  if File_exist?(TEMPLATE_LETTER)
     template_letter = File.read TEMPLATE_LETTER
     erb_template = ERB.new template_letter
   else
@@ -69,7 +65,7 @@ def display_csv_file(file_to_display, _civic_info)
   end
 end
 
-if file_exist?(EVENT_ATTENDEES)
+if File_exist?(EVENT_ATTENDEES)
   display_csv_file(EVENT_ATTENDEES, civic_info)
 else
   puts "#{EVENT_ATTENDEES} does not exist"
