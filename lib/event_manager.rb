@@ -1,4 +1,8 @@
-require "csv"
+require 'csv'
+require 'google/apis/civicinfo_v2'
+
+civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
+civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
 puts 'EventManager Initialized!'
 
@@ -12,34 +16,45 @@ def file_exist?
   end
 end
 
-def display_entire_file(file_to_display)
-  contents = File.read file_to_display
-  puts contents
+def clean_zipcode(zipcode)
+  zipcode.to_s.rjust(5, '0')[0..4]
 end
 
-def display_lines(file_to_display)
-  lines = File.readlines file_to_display
-  lines.each_with_index do |line, index|
-    next if index == 0
-    columns = line.split(",")
-    name = columns[2]
-    p name
+def legislators_by_zipcode(zip)
+  civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
+  civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
+
+  begin
+    legislators = civic_info.representative_info_by_address(
+      address: zip,
+      levels: 'country',
+      roles: %w[legislatorUpperBody legislatorLowerBody]
+    )
+    legislators = legislators.officials
+    legislator_names = legislators.map(&:name)
+    legislators_string = legislator_names.join(', ')
+  rescue StandardError
+    'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
 end
 
-def display_csv_file(file_to_display)
+def display_csv_file(file_to_display, _civic_info)
   contents = CSV.open file_to_display, headers: true, header_converters: :symbol
+
   contents.each do |column|
     name = column[:first_name]
-    zipcode = column[:zipcode]
-    puts "#{name} #{zipcode}"
+
+    zipcode = clean_zipcode(column[:zipcode])
+
+    legislator = legislators_by_zipcode(zipcode)
+
+    puts "#{name} #{zipcode} #{legislator}"
+    puts ''
   end
 end
 
 if file_exist?
-  # display_entire_file FILE
-  # display_lines FILE
-  display_csv_file FILE
+  display_csv_file(FILE, civic_info)
 else
   puts "#{FILE} does not exist"
 end
