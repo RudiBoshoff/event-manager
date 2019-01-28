@@ -43,7 +43,7 @@ end
 def display_csv_file(file_to_display, _civic_info)
   contents = CSV.open file_to_display, headers: true, header_converters: :symbol
 
-  if File_exist?(TEMPLATE_LETTER)
+  if File.exist?(TEMPLATE_LETTER)
     template_letter = File.read TEMPLATE_LETTER
     erb_template = ERB.new template_letter
   else
@@ -51,11 +51,15 @@ def display_csv_file(file_to_display, _civic_info)
     exit
   end
 
-  contents.each do |column|
-    id = column[0]
-    name = column[:first_name]
+  analyse_contents(contents, erb_template)
+end
 
-    zipcode = clean_zipcode(column[:zipcode])
+def analyse_contents(contents, erb_template)
+  contents.each do |row|
+    id = row[0]
+    name = row[:first_name]
+
+    zipcode = clean_zipcode(row[:zipcode])
 
     legislators = legislators_by_zipcode(zipcode)
 
@@ -65,7 +69,7 @@ def display_csv_file(file_to_display, _civic_info)
   end
 end
 
-if File_exist?(EVENT_ATTENDEES)
+if File.exist?(EVENT_ATTENDEES)
   display_csv_file(EVENT_ATTENDEES, civic_info)
 else
   puts "#{EVENT_ATTENDEES} does not exist"
